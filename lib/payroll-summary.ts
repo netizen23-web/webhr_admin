@@ -544,7 +544,7 @@ export async function getAdminPayrollSummarySheet(period?: {
     const lateCount = attendance.late || row.total_terlambat || 0;
     const lateDeduction = lateCount * 20000;
     const totalSalaryBeforeDeduction =
-      monthlyBaseSalary +
+      totalBaseSalary +
       positionAllowance +
       fixedMealAllowance * workDays +
       subsidy +

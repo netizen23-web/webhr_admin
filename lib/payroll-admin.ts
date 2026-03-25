@@ -544,7 +544,7 @@ export async function upsertPayrollFromForm(payload: PayrollFormPayload, period?
     const lateDeduction = lateCount * 20000;
     const totalBaseSalary = gajiPerDay * presentDays;
     const totalSalaryBeforeDeduction =
-      monthlyBaseSalary +
+      totalBaseSalary +
       tunjanganJabatan +
       uangMakanPerDay * workDays +
       subsidi +
