@@ -546,7 +546,7 @@ export async function getAdminPayrollSummarySheet(period?: {
     const totalSalaryBeforeDeduction =
       totalBaseSalary +
       positionAllowance +
-      fixedMealAllowance * workDays +
+      mealAllowance +
       subsidy +
       performanceBonus +
       fixedDiligenceAllowance +

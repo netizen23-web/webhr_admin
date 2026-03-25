@@ -546,7 +546,7 @@ export async function upsertPayrollFromForm(payload: PayrollFormPayload, period?
     const totalSalaryBeforeDeduction =
       totalBaseSalary +
       tunjanganJabatan +
-      uangMakanPerDay * workDays +
+      uangMakanTotal +
       subsidi +
       bonusPerforma +
       uangKerajinan +
