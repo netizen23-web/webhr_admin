@@ -63,6 +63,7 @@ function validatePayrollPayload(body: Record<string, unknown>) {
     overridePinjaman: parseOverride(body.overridePinjaman),
     overridePinjamanPribadi: parseOverride(body.overridePinjamanPribadi),
     overrideGajiPokok: parseOverride(body.overrideGajiPokok),
+    overrideKerajinan: parseOverride(body.overrideKerajinan),
   };
 
   if ([
@@ -95,6 +96,7 @@ function validatePayrollPayload(body: Record<string, unknown>) {
     overridePinjaman: values.overridePinjaman,
     overridePinjamanPribadi: values.overridePinjamanPribadi,
     overrideGajiPokok: values.overrideGajiPokok,
+    overrideKerajinan: values.overrideKerajinan,
   };
 
   return { payload };

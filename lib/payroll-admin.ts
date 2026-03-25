@@ -96,6 +96,7 @@ export type PayrollFormPayload = {
   overridePinjaman?: number | null;
   overridePinjamanPribadi?: number | null;
   overrideGajiPokok?: number | null;
+  overrideKerajinan?: number | null;
 };
 
 export type PayrollOmzetPeriod = {
@@ -298,12 +299,23 @@ export async function ensurePayrollSupportTables(connection?: any) {
 
   try {
     await executor.query(`
-      ALTER TABLE payroll_employee_input 
+      ALTER TABLE payroll_employee_input
       ADD COLUMN override_gaji_pokok DECIMAL(14,2) NULL DEFAULT NULL
     `);
   } catch (err: any) {
     if (err.code !== 'ER_DUP_FIELDNAME') {
       console.error("Migration warning for override_gaji_pokok:", err);
+    }
+  }
+
+  try {
+    await executor.query(`
+      ALTER TABLE payroll_employee_input
+      ADD COLUMN override_kerajinan DECIMAL(14,2) NULL DEFAULT NULL
+    `);
+  } catch (err: any) {
+    if (err.code !== 'ER_DUP_FIELDNAME') {
+      console.error("Migration warning for override_kerajinan:", err);
     }
   }
 }
@@ -537,7 +549,8 @@ export async function upsertPayrollFromForm(payload: PayrollFormPayload, period?
     const uangKerajinan = payload.uangKerajinan;
     const bpjs = payload.bpjs;
     const bonusPerforma = payrollType === "sales" ? 0 : payload.bonusPerforma;
-    const diligenceAllowance = presentDays + sickCount >= workDays ? uangKerajinan : 0;
+    const autoDigilenceAllowance = presentDays + sickCount >= workDays ? uangKerajinan : 0;
+    const diligenceAllowance = payload.overrideKerajinan ?? autoDigilenceAllowance;
     const diligenceCut = Math.max(uangKerajinan - diligenceAllowance, 0);
     const overtimeBonus = overtimeHours * 20000;
     const halfDayDeduction = (gajiPerDay / 2) * halfDayCount;
@@ -684,8 +697,9 @@ export async function upsertPayrollFromForm(payload: PayrollFormPayload, period?
           override_kontrak,
           override_pinjaman,
           override_pinjaman_pribadi,
-          override_gaji_pokok
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          override_gaji_pokok,
+          override_kerajinan
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
           payroll_type = VALUES(payroll_type),
           gaji_pokok_per_hari = VALUES(gaji_pokok_per_hari),
@@ -705,7 +719,8 @@ export async function upsertPayrollFromForm(payload: PayrollFormPayload, period?
           override_kontrak = VALUES(override_kontrak),
           override_pinjaman = VALUES(override_pinjaman),
           override_pinjaman_pribadi = VALUES(override_pinjaman_pribadi),
-          override_gaji_pokok = VALUES(override_gaji_pokok)
+          override_gaji_pokok = VALUES(override_gaji_pokok),
+          override_kerajinan = VALUES(override_kerajinan)
       `,
       [
         payrollId,
@@ -729,6 +744,7 @@ export async function upsertPayrollFromForm(payload: PayrollFormPayload, period?
         payload.overridePinjaman ?? null,
         payload.overridePinjamanPribadi ?? null,
         payload.overrideGajiPokok ?? null,
+        payload.overrideKerajinan ?? null,
       ],
     );
 

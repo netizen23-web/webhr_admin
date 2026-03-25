@@ -34,6 +34,7 @@ type FormState = {
   overridePinjaman: string;
   overridePinjamanPribadi: string;
   overrideGajiPokok: string;
+  overrideKerajinan: string;
 };
 
 const inputClassName = "h-12 w-full rounded-2xl border border-[#d5e9ea] bg-white px-4 text-[#173033] outline-none placeholder:text-[#87a6a8] focus:border-[#19d7df] focus:shadow-[0_0_0_4px_rgba(25,215,223,0.16)]";
@@ -62,7 +63,7 @@ function parseNumber(value: string) {
 }
 
 function emptyForm(employeeId = ""): FormState {
-  return { employeeId, gajiPerDay: "", tunjanganJabatan: "", uangMakan: "", subsidi: "", uangKerajinan: "", bpjs: "", bonusPerforma: "", insentif: "", uangTransport: "", overrideMasuk: "", overrideLembur: "", overrideIzin: "", overrideSakit: "", overrideSakitTanpaSurat: "", overrideSetengahHari: "", overrideKontrak: "", overridePinjaman: "", overridePinjamanPribadi: "", overrideGajiPokok: "" };
+  return { employeeId, gajiPerDay: "", tunjanganJabatan: "", uangMakan: "", subsidi: "", uangKerajinan: "", bpjs: "", bonusPerforma: "", insentif: "", uangTransport: "", overrideMasuk: "", overrideLembur: "", overrideIzin: "", overrideSakit: "", overrideSakitTanpaSurat: "", overrideSetengahHari: "", overrideKontrak: "", overridePinjaman: "", overridePinjamanPribadi: "", overrideGajiPokok: "", overrideKerajinan: "" };
 }
 
 function formatFormValue(value: number) {
@@ -95,6 +96,7 @@ function buildFormFromRow(row: AdminPayrollSummarySheetRow): FormState {
     overridePinjaman: formatOverrideValue(row.inputOverridePinjaman),
     overridePinjamanPribadi: formatOverrideValue(row.inputOverridePinjamanPribadi),
     overrideGajiPokok: formatOverrideValue(row.inputOverrideGajiPokok),
+    overrideKerajinan: formatOverrideValue(row.inputOverrideKerajinan),
   };
 }
 
@@ -208,6 +210,7 @@ export default function AdminPayrollSummaryManager({ sheet, employeeOptions, omz
       overridePinjaman: form.overridePinjaman !== "" ? parseNumber(form.overridePinjaman) : null,
       overridePinjamanPribadi: form.overridePinjamanPribadi !== "" ? parseNumber(form.overridePinjamanPribadi) : null,
       overrideGajiPokok: form.overrideGajiPokok !== "" ? parseNumber(form.overrideGajiPokok) : null,
+      overrideKerajinan: form.overrideKerajinan !== "" ? parseNumber(form.overrideKerajinan) : null,
     };
     startPayrollTransition(async () => {
       try {
@@ -296,6 +299,7 @@ export default function AdminPayrollSummaryManager({ sheet, employeeOptions, omz
                 <Field label="Sakit (Hari)"><input value={form.overrideSakit} onChange={(event) => updateField("overrideSakit", formatNumericInput(event.target.value))} className={inputClassName} inputMode="numeric" placeholder="Otomatis" /></Field>
                 <Field label="Sakit Tanpa Surat (Hari)"><input value={form.overrideSakitTanpaSurat} onChange={(event) => updateField("overrideSakitTanpaSurat", formatNumericInput(event.target.value))} className={inputClassName} inputMode="numeric" placeholder="Otomatis" /></Field>
                 <Field label="1/2 Hari (Hari)"><input value={form.overrideSetengahHari} onChange={(event) => updateField("overrideSetengahHari", formatNumericInput(event.target.value))} className={inputClassName} inputMode="numeric" placeholder="Otomatis" /></Field>
+                <Field label="Kerajinan (Rp)"><input value={form.overrideKerajinan} onChange={(event) => updateField("overrideKerajinan", formatNumericInput(event.target.value))} className={inputClassName} inputMode="numeric" placeholder="Otomatis" /></Field>
               </div>
             </div>
 

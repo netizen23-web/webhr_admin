@@ -66,6 +66,7 @@ type PayrollSheetBaseRow = RowDataPacket & {
   raw_override_pinjaman: string | null;
   raw_override_pinjaman_pribadi: string | null;
   raw_override_gaji_pokok: string | null;
+  raw_override_kerajinan: string | null;
   total_omzet_global: string | null;
 };
 
@@ -159,6 +160,7 @@ export type AdminPayrollSummarySheetRow = {
   inputOverridePinjaman: number | null;
   inputOverridePinjamanPribadi: number | null;
   inputOverrideGajiPokok: number | null;
+  inputOverrideKerajinan: number | null;
 };
 
 export type AdminPayrollSummarySheet = {
@@ -307,6 +309,7 @@ export async function getAdminPayrollSummarySheet(period?: {
         pei.override_pinjaman AS raw_override_pinjaman,
         pei.override_pinjaman_pribadi AS raw_override_pinjaman_pribadi,
         pei.override_gaji_pokok AS raw_override_gaji_pokok,
+        pei.override_kerajinan AS raw_override_kerajinan,
         ob.total_omzet AS total_omzet_global
       FROM payroll p
       INNER JOIN karyawan k ON k.id = p.karyawan_id
@@ -484,6 +487,10 @@ export async function getAdminPayrollSummarySheet(period?: {
       row.raw_override_gaji_pokok !== null
         ? toNumber(row.raw_override_gaji_pokok)
         : null;
+    const inputOverrideKerajinan =
+      row.raw_override_kerajinan !== null
+        ? toNumber(row.raw_override_kerajinan)
+        : null;
 
     const payrollType =
       row.raw_payroll_type ??
@@ -528,10 +535,11 @@ export async function getAdminPayrollSummarySheet(period?: {
     const sickWithoutNoteCount =
       inputOverrideSakitTanpaSurat ?? attendance.sickWithoutNote;
 
-    const diligenceAllowance =
+    const autoDiligenceAllowance =
       presentDays + sickCount >= workDays && workDays > 0
         ? fixedDiligenceAllowance
         : 0;
+    const diligenceAllowance = inputOverrideKerajinan ?? autoDiligenceAllowance;
     const overtimeHours =
       inputOverrideLembur ??
       overtimeMap.get(row.employee_id) ??
@@ -654,6 +662,7 @@ export async function getAdminPayrollSummarySheet(period?: {
       inputOverridePinjaman,
       inputOverridePinjamanPribadi,
       inputOverrideGajiPokok,
+      inputOverrideKerajinan,
     };
   });
 
