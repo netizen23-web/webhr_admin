@@ -1,0 +1,10 @@
+node_modules
+.next
+.git
+.gitignore
+.env*
+*.md
+Docs.md
+README.md
+Flow/
+temp_patch_test.txt
