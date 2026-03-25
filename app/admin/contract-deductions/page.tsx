@@ -3,6 +3,8 @@ import AdminShell from "@/components/AdminShell";
 import { requireAdminSession } from "@/lib/auth";
 import { listContractDeductionPlans } from "@/lib/contract-deductions";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminContractDeductionsPage() {
   const admin = await requireAdminSession();
   const rows = await listContractDeductionPlans({ activeOnly: true });

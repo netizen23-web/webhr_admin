@@ -8,6 +8,8 @@ import {
 } from "@/lib/payroll-admin";
 import { getAdminPayrollSummarySheet } from "@/lib/payroll-summary";
 
+export const dynamic = "force-dynamic";
+
 function parsePositiveInt(value: string | string[] | undefined) {
   if (typeof value !== "string") {
     return null;

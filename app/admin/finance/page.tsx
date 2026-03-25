@@ -15,6 +15,8 @@ import {
 import { listPayrollPeriods } from "@/lib/payroll-admin";
 import { EMPLOYEE_DEPARTMENTS } from "@/lib/employees";
 
+export const dynamic = "force-dynamic";
+
 function parsePositiveInt(value: string | string[] | undefined) {
   if (typeof value !== "string") return null;
   const parsed = Number(value);

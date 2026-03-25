@@ -2,6 +2,8 @@ import AdminShell from "@/components/AdminShell";
 import { requireAdminSession } from "@/lib/auth";
 import { listPayslipDistribution } from "@/lib/hris";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminPayslipDistributionPage() {
   const admin = await requireAdminSession();
   const rows = await listPayslipDistribution();

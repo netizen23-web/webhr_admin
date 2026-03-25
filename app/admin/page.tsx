@@ -5,6 +5,8 @@ import AdminShell from "@/components/AdminShell";
 import { requireAdminSession } from "@/lib/auth";
 import { getAdminDashboardStats } from "@/lib/hris";
 
+export const dynamic = "force-dynamic";
+
 const statCards = [
   {
     key: "totalEmployees",

@@ -3,6 +3,8 @@ import AdminShell from "@/components/AdminShell";
 import { requireAdminSession } from "@/lib/auth";
 import { getEmployeeLookups, getEmployeeStats, listEmployees } from "@/lib/employees";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminEmployeesPage() {
   const admin = await requireAdminSession();
 
