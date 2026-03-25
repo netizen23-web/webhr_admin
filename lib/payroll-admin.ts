@@ -544,6 +544,16 @@ export async function upsertPayrollFromForm(payload: PayrollFormPayload, period?
     const lateDeduction = lateCount * 20000;
     const totalBaseSalary = gajiPerDay * presentDays;
     const totalSalaryBeforeDeduction =
+      monthlyBaseSalary +
+      tunjanganJabatan +
+      uangMakanPerDay * workDays +
+      subsidi +
+      bonusPerforma +
+      uangKerajinan +
+      bpjs +
+      overtimeBonus +
+      (payrollType === "sales" ? payload.insentif + payload.uangTransport : 0);
+    const totalSalary =
       totalBaseSalary +
       tunjanganJabatan +
       uangMakanTotal +
@@ -552,8 +562,9 @@ export async function upsertPayrollFromForm(payload: PayrollFormPayload, period?
       diligenceAllowance +
       bpjs +
       overtimeBonus +
-      (payrollType === "sales" ? payload.insentif + payload.uangTransport : 0);
-    const totalSalary = totalSalaryBeforeDeduction - halfDayDeduction - lateDeduction;
+      (payrollType === "sales" ? payload.insentif + payload.uangTransport : 0) -
+      halfDayDeduction -
+      lateDeduction;
     const totalPotongan = halfDayDeduction + lateDeduction + diligenceCut + contractCut + loanCut + personalLoanCut;
     const netIncome = totalSalary - contractCut - loanCut - personalLoanCut;
 

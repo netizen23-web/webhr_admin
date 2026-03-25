@@ -544,6 +544,18 @@ export async function getAdminPayrollSummarySheet(period?: {
     const lateCount = attendance.late || row.total_terlambat || 0;
     const lateDeduction = lateCount * 20000;
     const totalSalaryBeforeDeduction =
+      monthlyBaseSalary +
+      positionAllowance +
+      fixedMealAllowance * workDays +
+      subsidy +
+      performanceBonus +
+      fixedDiligenceAllowance +
+      bpjs +
+      overtimeBonus +
+      omzetBonus +
+      incentive +
+      transportAllowance;
+    const totalSalary =
       totalBaseSalary +
       positionAllowance +
       mealAllowance +
@@ -554,9 +566,9 @@ export async function getAdminPayrollSummarySheet(period?: {
       overtimeBonus +
       omzetBonus +
       incentive +
-      transportAllowance;
-    const totalSalary =
-      totalSalaryBeforeDeduction - halfDayDeduction - lateDeduction;
+      transportAllowance -
+      halfDayDeduction -
+      lateDeduction;
     const contractDeduction =
       inputOverrideKontrak ??
       contractMap.get(row.employee_id) ??
