@@ -1,6 +1,7 @@
 import { randomInt } from "node:crypto";
 import { RowDataPacket, ResultSetHeader } from "mysql2/promise";
 import nodemailer from "nodemailer";
+import type SMTPTransport from "nodemailer/lib/smtp-transport";
 import { pool } from "@/lib/db";
 
 const OTP_EXPIRY_MINUTES = 5;
@@ -33,7 +34,7 @@ function generateOtp(): string {
 
 function getTransporter() {
   const port = Number(process.env.SMTP_PORT ?? 587);
-  return nodemailer.createTransport({
+  const options: SMTPTransport.Options = {
     host: process.env.SMTP_HOST ?? "smtp.gmail.com",
     port,
     secure: process.env.SMTP_SECURE === "true" || port === 465,
@@ -41,11 +42,12 @@ function getTransporter() {
       user: process.env.SMTP_USER ?? "",
       pass: (process.env.SMTP_PASS ?? "").replace(/\s+/g, ""),
     },
-    family: 4,
     connectionTimeout: 15000,
     greetingTimeout: 10000,
     socketTimeout: 20000,
-  });
+  };
+  (options as SMTPTransport.Options & { family?: number }).family = 4;
+  return nodemailer.createTransport(options);
 }
 
 export async function sendOtp(email: string): Promise<{ success: boolean; message: string }> {
