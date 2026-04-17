@@ -20,7 +20,8 @@
       "Bash(node scripts/import-db.mjs import)",
       "Bash(node scripts/import-db.mjs verify)",
       "Bash(node scripts/import-db.mjs reset)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(node *)"
     ]
   }
 }

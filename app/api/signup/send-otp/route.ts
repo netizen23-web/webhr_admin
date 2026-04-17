@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { sendOtp } from "@/lib/otp";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as { email?: string };
@@ -25,8 +28,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: result.message });
   } catch (error) {
     console.error("Send OTP error", error);
+    const detail =
+      error instanceof Error ? `${error.name}: ${error.message}` : "unknown";
     return NextResponse.json(
-      { message: "Gagal mengirim kode verifikasi." },
+      { message: `Gagal mengirim kode verifikasi (${detail}).` },
       { status: 500 },
     );
   }

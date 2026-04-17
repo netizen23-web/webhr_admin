@@ -32,18 +32,26 @@ function generateOtp(): string {
 }
 
 function getTransporter() {
+  const port = Number(process.env.SMTP_PORT ?? 587);
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST ?? "smtp.gmail.com",
-    port: Number(process.env.SMTP_PORT ?? 587),
-    secure: process.env.SMTP_SECURE === "true",
+    port,
+    secure: process.env.SMTP_SECURE === "true" || port === 465,
     auth: {
       user: process.env.SMTP_USER ?? "",
-      pass: process.env.SMTP_PASS ?? "",
+      pass: (process.env.SMTP_PASS ?? "").replace(/\s+/g, ""),
     },
+    connectionTimeout: 15000,
+    greetingTimeout: 10000,
+    socketTimeout: 20000,
   });
 }
 
 export async function sendOtp(email: string): Promise<{ success: boolean; message: string }> {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    return { success: false, message: "Konfigurasi SMTP belum lengkap (SMTP_USER/SMTP_PASS kosong)." };
+  }
+
   await ensureOtpTable();
 
   const code = generateOtp();
@@ -84,7 +92,14 @@ export async function sendOtp(email: string): Promise<{ success: boolean; messag
     return { success: true, message: "Kode verifikasi telah dikirim ke email Anda." };
   } catch (error) {
     console.error("Failed to send OTP email", error);
-    return { success: false, message: "Gagal mengirim email verifikasi. Periksa konfigurasi SMTP." };
+    const detail =
+      error instanceof Error
+        ? `${error.name}: ${error.message}`
+        : "unknown error";
+    return {
+      success: false,
+      message: `Gagal mengirim email verifikasi (${detail}).`,
+    };
   }
 }
 
