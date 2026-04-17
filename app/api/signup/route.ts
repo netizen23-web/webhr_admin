@@ -48,8 +48,14 @@ export async function POST(request: Request) {
     }
 
     console.error("Signup error", error);
+    const detail =
+      error instanceof Error
+        ? `${error.name}: ${error.message}`
+        : typeof error === "object" && error !== null && "code" in error
+          ? String((error as { code: unknown }).code)
+          : "unknown";
     return NextResponse.json(
-      { message: "Gagal memproses pendaftaran." },
+      { message: `Gagal memproses pendaftaran (${detail}).` },
       { status: 500 },
     );
   }
