@@ -1,7 +1,6 @@
 import { randomInt } from "node:crypto";
 import { RowDataPacket, ResultSetHeader } from "mysql2/promise";
-import nodemailer from "nodemailer";
-import type SMTPTransport from "nodemailer/lib/smtp-transport";
+import { Resend } from "resend";
 import { pool } from "@/lib/db";
 
 const OTP_EXPIRY_MINUTES = 5;
@@ -32,27 +31,10 @@ function generateOtp(): string {
   return String(randomInt(100000, 999999));
 }
 
-function getTransporter() {
-  const port = Number(process.env.SMTP_PORT ?? 587);
-  const options: SMTPTransport.Options = {
-    host: process.env.SMTP_HOST ?? "smtp.gmail.com",
-    port,
-    secure: process.env.SMTP_SECURE === "true" || port === 465,
-    auth: {
-      user: process.env.SMTP_USER ?? "",
-      pass: (process.env.SMTP_PASS ?? "").replace(/\s+/g, ""),
-    },
-    connectionTimeout: 15000,
-    greetingTimeout: 10000,
-    socketTimeout: 20000,
-  };
-  (options as SMTPTransport.Options & { family?: number }).family = 4;
-  return nodemailer.createTransport(options);
-}
-
 export async function sendOtp(email: string): Promise<{ success: boolean; message: string }> {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    return { success: false, message: "Konfigurasi SMTP belum lengkap (SMTP_USER/SMTP_PASS kosong)." };
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    return { success: false, message: "RESEND_API_KEY belum diset." };
   }
 
   await ensureOtpTable();
@@ -71,9 +53,9 @@ export async function sendOtp(email: string): Promise<{ success: boolean; messag
   );
 
   try {
-    const transporter = getTransporter();
-    await transporter.sendMail({
-      from: process.env.SMTP_FROM ?? process.env.SMTP_USER ?? "noreply@kayres.co.id",
+    const resend = new Resend(apiKey);
+    const { error } = await resend.emails.send({
+      from: process.env.RESEND_FROM ?? "onboarding@resend.dev",
       to: email,
       subject: "Kode Verifikasi Pendaftaran - Kayres Employee Portal",
       html: `
@@ -91,6 +73,14 @@ export async function sendOtp(email: string): Promise<{ success: boolean; messag
         </div>
       `,
     });
+
+    if (error) {
+      console.error("Resend API error", error);
+      return {
+        success: false,
+        message: `Gagal mengirim email verifikasi (${error.name}: ${error.message}).`,
+      };
+    }
 
     return { success: true, message: "Kode verifikasi telah dikirim ke email Anda." };
   } catch (error) {
