@@ -41,6 +41,7 @@ function getTransporter() {
       user: process.env.SMTP_USER ?? "",
       pass: (process.env.SMTP_PASS ?? "").replace(/\s+/g, ""),
     },
+    family: 4,
     connectionTimeout: 15000,
     greetingTimeout: 10000,
     socketTimeout: 20000,
