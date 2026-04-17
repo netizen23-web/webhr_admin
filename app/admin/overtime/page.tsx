@@ -3,8 +3,6 @@ import AdminOvertimeApprovals from "@/components/AdminOvertimeApprovals";
 import { requireAdminSession } from "@/lib/auth";
 import { listOvertimeRecords } from "@/lib/hris";
 
-export const dynamic = "force-dynamic";
-
 export default async function AdminOvertimePage() {
   const admin = await requireAdminSession();
   const rows = await listOvertimeRecords();

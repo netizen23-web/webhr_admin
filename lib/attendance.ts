@@ -1,3 +1,6 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
+
 function getJakartaParts() {
   const formatter = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Jakarta",
@@ -38,4 +41,26 @@ export function getCheckInLateMinutes(time: string) {
   const minutes = Number(hourString) * 60 + Number(minuteString);
   const expectedMinutes = 8 * 60 + 30;
   return Math.max(minutes - expectedMinutes, 0);
+}
+
+export async function saveAttendancePhoto(dataUrl: string, employeeId: number, mode: "in" | "out") {
+  const match = dataUrl.match(/^data:(image\/(?:jpeg|jpg|png|webp));base64,(.+)$/);
+
+  if (!match) {
+    throw new Error("Format foto tidak valid.");
+  }
+
+  const mimeType = match[1];
+  const base64Data = match[2];
+  const extension =
+    mimeType === "image/png" ? "png" : mimeType === "image/webp" ? "webp" : "jpg";
+  const fileName = `employee-${employeeId}-${mode}-${Date.now()}.${extension}`;
+  const relativePath = `/uploads/attendance/${fileName}`;
+  const uploadDir = path.join(process.cwd(), "public", "uploads", "attendance");
+  const absolutePath = path.join(uploadDir, fileName);
+
+  await mkdir(uploadDir, { recursive: true });
+  await writeFile(absolutePath, Buffer.from(base64Data, "base64"));
+
+  return relativePath;
 }

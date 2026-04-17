@@ -3,8 +3,6 @@ import AdminShell from "@/components/AdminShell";
 import { requireAdminSession } from "@/lib/auth";
 import { listAdminLoans } from "@/lib/loans";
 
-export const dynamic = "force-dynamic";
-
 export default async function AdminLoansPage() {
   const admin = await requireAdminSession();
   const rows = await listAdminLoans();

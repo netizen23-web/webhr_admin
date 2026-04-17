@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { RowDataPacket } from "mysql2";
 import { pool } from "@/lib/db";
-import { clearAllSessionCookies, setAdminSessionCookie } from "@/lib/auth";
+import { clearAllSessionCookies, setAdminSessionCookie, setEmployeeSessionCookie } from "@/lib/auth";
 
 type UserRow = RowDataPacket & {
   id: number;
   nama: string;
   email: string;
   password: string;
-  role: "admin";
+  role: "admin" | "karyawan";
   status_aktif: number;
 };
 
@@ -62,25 +62,33 @@ export async function POST(request: Request) {
       );
     }
 
-    if (user.role !== "admin") {
-      return NextResponse.json(
-        { message: "Hanya admin yang dapat login." },
-        { status: 403 },
-      );
-    }
-
     await clearAllSessionCookies();
 
-    await setAdminSessionCookie({
+    if (user.role === "admin") {
+      await setAdminSessionCookie({
+        id: user.id,
+        email: user.email,
+        fullName: user.nama,
+      });
+
+      return NextResponse.json({
+        message: "Login admin berhasil.",
+        role: "admin",
+        redirectTo: "/admin",
+      });
+    }
+
+    await setEmployeeSessionCookie({
       id: user.id,
+      userId: user.id,
       email: user.email,
       fullName: user.nama,
     });
 
     return NextResponse.json({
-      message: "Login admin berhasil.",
-      role: "admin",
-      redirectTo: "/admin",
+      message: "Login karyawan berhasil.",
+      role: "karyawan",
+      redirectTo: "/employee/check-in",
     });
   } catch (error) {
     console.error("Login error", error);

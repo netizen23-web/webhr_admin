@@ -15,29 +15,13 @@ function requireEnv(name: string, fallback?: string) {
   return value;
 }
 
-function buildDbConfig() {
-  const mysqlUrl = process.env.MYSQL_URL || process.env.DATABASE_URL;
-  if (mysqlUrl) {
-    const url = new URL(mysqlUrl);
-    return {
-      host: url.hostname,
-      port: Number(url.port) || 3306,
-      user: decodeURIComponent(url.username),
-      password: decodeURIComponent(url.password),
-      database: url.pathname.replace(/^\//, ""),
-    };
-  }
-
-  return {
-    host: requireEnv("DB_HOST", process.env.MYSQLHOST ?? "127.0.0.1"),
-    port: Number(requireEnv("DB_PORT", process.env.MYSQLPORT ?? "3306")),
-    user: requireEnv("DB_USER", process.env.MYSQLUSER ?? "root"),
-    password: process.env.DB_PASSWORD ?? process.env.MYSQLPASSWORD ?? "",
-    database: requireEnv("DB_NAME", process.env.MYSQLDATABASE ?? "hris_admin_only"),
-  };
-}
-
-export const dbConfig = buildDbConfig();
+export const dbConfig = {
+  host: requireEnv("DB_HOST", "127.0.0.1"),
+  port: Number(requireEnv("DB_PORT", "3306")),
+  user: requireEnv("DB_USER", "root"),
+  password: process.env.DB_PASSWORD ?? "",
+  database: requireEnv("DB_NAME", "hris_payroll_app_v2"),
+};
 
 const poolKey = `${dbConfig.host}:${dbConfig.port}/${dbConfig.database}:${dbConfig.user}`;
 

@@ -41,6 +41,12 @@ type AttendanceRow = RowDataPacket & {
   kode_absensi: string | null;
   jam_masuk: string | null;
   jam_pulang: string | null;
+  foto_masuk: string | null;
+  foto_pulang: string | null;
+  latitude_masuk: number | null;
+  longitude_masuk: number | null;
+  latitude_pulang: number | null;
+  longitude_pulang: number | null;
   terlambat_menit: number;
   setengah_hari: number;
   keterangan: string | null;
@@ -52,6 +58,12 @@ export type AttendanceDayDetail = {
   status: string | null;
   timeIn: string | null;
   timeOut: string | null;
+  photoIn: string | null;
+  photoOut: string | null;
+  latitudeIn: number | null;
+  longitudeIn: number | null;
+  latitudeOut: number | null;
+  longitudeOut: number | null;
   lateMinutes: number;
   note: string | null;
 };
@@ -109,6 +121,7 @@ function mapAttendanceCode(
     | "kode_absensi"
     | "jam_masuk"
     | "jam_pulang"
+    | "foto_masuk"
     | "setengah_hari"
   >,
 ) {
@@ -117,12 +130,13 @@ function mapAttendanceCode(
     kode_absensi: code,
     jam_masuk: timeIn,
     jam_pulang: timeOut,
+    foto_masuk: photoIn,
     setengah_hari: halfDayFlag,
   } = row;
   const isHalfDay =
     status === "setengah_hari" ||
     isHalfDayAttendance(timeIn, timeOut, halfDayFlag);
-  const isSickWithoutProof = false;
+  const isSickWithoutProof = status === "sakit" && !photoIn;
 
   if (code) {
     switch (code) {
@@ -189,6 +203,12 @@ export async function getAttendanceSheet(options: AttendanceSheetOptions = {}) {
         a.kode_absensi,
         DATE_FORMAT(a.jam_masuk, '%H:%i') AS jam_masuk,
         DATE_FORMAT(a.jam_pulang, '%H:%i') AS jam_pulang,
+        a.foto_masuk,
+        a.foto_pulang,
+        a.latitude_masuk,
+        a.longitude_masuk,
+        a.latitude_pulang,
+        a.longitude_pulang,
         a.terlambat_menit,
         a.setengah_hari,
         a.keterangan
@@ -241,6 +261,12 @@ export async function getAttendanceSheet(options: AttendanceSheetOptions = {}) {
         status: row.status_absensi,
         timeIn: row.jam_masuk,
         timeOut: row.jam_pulang,
+        photoIn: row.foto_masuk,
+        photoOut: row.foto_pulang,
+        latitudeIn: row.latitude_masuk,
+        longitudeIn: row.longitude_masuk,
+        latitudeOut: row.latitude_pulang,
+        longitudeOut: row.longitude_pulang,
         lateMinutes: row.terlambat_menit,
         note: row.keterangan,
       };
@@ -747,6 +773,7 @@ export type PencairanGajiByUnit = {
   potonganSetengahHari: number;
   potonganKerajinan: number;
   hutangPerusahaan: number;
+  lemburTambahan: number;
 };
 
 export type PencairanGajiResult = {
@@ -755,20 +782,83 @@ export type PencairanGajiResult = {
   period: { month: number; year: number } | null;
 };
 
+let financeLemburTableReady: Promise<void> | null = null;
+
+async function ensureFinanceLemburTable() {
+  if (!financeLemburTableReady) {
+    financeLemburTableReady = (async () => {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS finance_lembur_tambahan (
+          id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+          periode_bulan TINYINT UNSIGNED NOT NULL,
+          periode_tahun SMALLINT UNSIGNED NOT NULL,
+          unit VARCHAR(100) NOT NULL,
+          nominal DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+          catatan VARCHAR(255) NULL,
+          created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          PRIMARY KEY (id),
+          UNIQUE KEY uq_finance_lembur_unit (periode_bulan, periode_tahun, unit)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      `);
+    })();
+  }
+  await financeLemburTableReady;
+}
+
+type FinanceLemburRow = RowDataPacket & {
+  unit: string;
+  nominal: string;
+  catatan: string | null;
+};
+
+export async function listFinanceLemburTambahan(period: { month: number; year: number }) {
+  await ensureFinanceLemburTable();
+  const [rows] = await pool.query<FinanceLemburRow[]>(
+    `SELECT unit, nominal, catatan FROM finance_lembur_tambahan
+      WHERE periode_bulan = ? AND periode_tahun = ?`,
+    [period.month, period.year],
+  );
+  const map = new Map<string, { nominal: number; catatan: string | null }>();
+  for (const row of rows) {
+    map.set(row.unit, {
+      nominal: Number(row.nominal) || 0,
+      catatan: row.catatan,
+    });
+  }
+  return map;
+}
+
+export async function upsertFinanceLemburTambahan(
+  period: { month: number; year: number },
+  entries: { unit: string; nominal: number; catatan?: string | null }[],
+) {
+  await ensureFinanceLemburTable();
+  for (const entry of entries) {
+    const unitName = entry.unit.trim();
+    if (!unitName) continue;
+    await pool.query(
+      `INSERT INTO finance_lembur_tambahan (periode_bulan, periode_tahun, unit, nominal, catatan)
+       VALUES (?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE nominal = VALUES(nominal), catatan = VALUES(catatan)`,
+      [period.month, period.year, unitName, entry.nominal, entry.catatan ?? null],
+    );
+  }
+}
+
 export async function listFinancePencairanGaji(period?: {
   month?: number;
   year?: number;
 }): Promise<PencairanGajiResult> {
   const sheet = await getAdminPayrollSummarySheet(period);
-  if (!sheet || !sheet.rows.length)
-    return { units: [], byUnit: {}, period: null };
 
   // Collect unit names from payroll data, then merge with fixed order
   const unitSet = new Set<string>(PENCAIRAN_UNIT_ORDER);
-  for (const row of sheet.rows) {
-    if (row.unit) unitSet.add(row.unit);
+  if (sheet) {
+    for (const row of sheet.rows) {
+      if (row.unit) unitSet.add(row.unit);
+    }
   }
-  // Keep fixed order first, then any extra units from payroll sorted after
   const extraUnits = Array.from(unitSet)
     .filter((u) => !PENCAIRAN_UNIT_ORDER.includes(u))
     .sort();
@@ -785,27 +875,55 @@ export async function listFinancePencairanGaji(period?: {
       potonganSetengahHari: 0,
       potonganKerajinan: 0,
       hutangPerusahaan: 0,
+      lemburTambahan: 0,
     };
   }
 
-  // Sum up per unit
-  for (const row of sheet.rows) {
-    if (!row.unit) continue;
-    const u = acc[row.unit];
-    if (!u) continue;
-    u.totalBersih += row.netIncome;
-    u.uangKontrak += row.contractDeduction;
-    // pengembalianKontrak stays 0
-    u.potonganTerlambat += row.lateDeduction;
-    u.potonganSetengahHari += row.halfDayDeduction;
-    u.potonganKerajinan += row.diligenceCut;
-    u.hutangPerusahaan += row.companyLoan;
+  if (sheet) {
+    for (const row of sheet.rows) {
+      if (!row.unit) continue;
+      const u = acc[row.unit];
+      if (!u) continue;
+      u.totalBersih += row.netIncome;
+      u.uangKontrak += row.contractDeduction;
+      u.potonganTerlambat += row.lateDeduction;
+      u.potonganSetengahHari += row.halfDayDeduction;
+      u.potonganKerajinan += row.diligenceCut;
+      u.hutangPerusahaan += row.companyLoan;
+    }
+  }
+
+  // Tambah lembur custom (finance) per unit
+  const resolvedPeriod = sheet
+    ? { month: sheet.periodMonth, year: sheet.periodYear }
+    : period?.month && period?.year
+      ? { month: period.month, year: period.year }
+      : null;
+
+  if (resolvedPeriod) {
+    const lemburMap = await listFinanceLemburTambahan(resolvedPeriod);
+    for (const [unit, value] of lemburMap.entries()) {
+      if (!acc[unit]) {
+        acc[unit] = {
+          totalBersih: 0,
+          uangKontrak: 0,
+          pengembalianKontrak: 0,
+          potonganTerlambat: 0,
+          potonganSetengahHari: 0,
+          potonganKerajinan: 0,
+          hutangPerusahaan: 0,
+          lemburTambahan: 0,
+        };
+        if (!units.includes(unit)) units.push(unit);
+      }
+      acc[unit].lemburTambahan = value.nominal;
+    }
   }
 
   return {
     units,
     byUnit: acc,
-    period: { month: sheet.periodMonth, year: sheet.periodYear },
+    period: resolvedPeriod,
   };
 }
 
@@ -892,6 +1010,61 @@ export async function listPayslipDistribution() {
   );
 
   return rows;
+}
+
+type PendingSlipRow = RowDataPacket & {
+  id: number;
+  karyawan_id: number;
+};
+
+export async function distributePendingPayslips(adminUserId: number) {
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const [pendingRows] = await connection.query<PendingSlipRow[]>(
+      `
+        SELECT sg.id, p.karyawan_id
+        FROM slip_gaji sg
+        INNER JOIN payroll p ON p.id = sg.payroll_id
+        WHERE sg.status_distribusi = 'draft'
+      `,
+    );
+
+    if (pendingRows.length === 0) {
+      await connection.commit();
+      return { distributed: 0 };
+    }
+
+    const ids = pendingRows.map((row) => row.id);
+    await connection.query(
+      `UPDATE slip_gaji SET status_distribusi = 'didistribusikan', tanggal_distribusi = NOW() WHERE id IN (?)`,
+      [ids],
+    );
+
+    const logValues = pendingRows.map((row) => [
+      row.id,
+      row.karyawan_id,
+      adminUserId,
+    ]);
+    await connection.query(
+      `
+        INSERT INTO log_distribusi_slip
+          (slip_gaji_id, karyawan_id, didistribusikan_oleh, tanggal_distribusi, status_baca)
+        VALUES ?
+      `,
+      [logValues.map((v) => [...v, new Date(), 0])],
+    );
+
+    await connection.commit();
+    return { distributed: pendingRows.length };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
 }
 
 type EmployeeCardRow = RowDataPacket & {
@@ -1159,6 +1332,7 @@ export async function getEmployeePayslips(employeeId: number) {
       INNER JOIN payroll p ON p.id = sg.payroll_id
       INNER JOIN karyawan k ON k.id = p.karyawan_id
       WHERE p.karyawan_id = ?
+        AND sg.status_distribusi IN ('didistribusikan', 'dibaca')
       ORDER BY p.periode_tahun DESC, p.periode_bulan DESC
     `,
     [employeeId],

@@ -4,8 +4,6 @@ import { requireAdminSession } from "@/lib/auth";
 import { getAttendanceSheet } from "@/lib/hris";
 import Link from "next/link";
 
-export const dynamic = "force-dynamic";
-
 type SearchParams = Promise<{
   view?: string;
   week?: string;
@@ -143,7 +141,7 @@ export default async function AdminAttendancePage({
             </div>
           </div>
         </div>
-        <AdminAttendanceSheet days={sheet.days} rows={sheet.rows} month={sheet.month} year={sheet.year} />
+        <AdminAttendanceSheet days={sheet.days} rows={sheet.rows} />
       </div>
     </AdminShell>
   );

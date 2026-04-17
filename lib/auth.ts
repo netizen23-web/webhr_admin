@@ -3,9 +3,17 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 const ADMIN_SESSION_COOKIE = "web_hr_admin_session";
+const EMPLOYEE_SESSION_COOKIE = "web_hr_employee_session";
 
 export type AdminSession = {
   id: number;
+  email: string;
+  fullName: string;
+};
+
+export type EmployeeSession = {
+  id: number;
+  userId: number;
   email: string;
   fullName: string;
 };
@@ -85,9 +93,37 @@ export async function setAdminSessionCookie(payload: AdminSession) {
   });
 }
 
+export async function getCurrentEmployeeSession() {
+  const cookieStore = await cookies();
+  return readSignedSession<EmployeeSession>(cookieStore.get(EMPLOYEE_SESSION_COOKIE)?.value);
+}
+
+export async function requireEmployeeSession() {
+  const session = await getCurrentEmployeeSession();
+
+  if (!session) {
+    redirect("/");
+  }
+
+  return session;
+}
+
+export async function setEmployeeSessionCookie(payload: EmployeeSession) {
+  const cookieStore = await cookies();
+
+  cookieStore.set(EMPLOYEE_SESSION_COOKIE, createSignedSession(payload), {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 8,
+  });
+}
+
 export async function clearAllSessionCookies() {
   const cookieStore = await cookies();
   cookieStore.delete(ADMIN_SESSION_COOKIE);
+  cookieStore.delete(EMPLOYEE_SESSION_COOKIE);
 }
 
 export async function clearAdminSessionCookie() {
